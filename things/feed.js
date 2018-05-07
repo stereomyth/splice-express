@@ -3,10 +3,32 @@ const parser = require('xml2json');
 
 const db = `${__dirname}/../json/`;
 const loc = `${__dirname}/../data/`;
-// const loc = 'https://www.cineworld.co.uk/syndication/';
+const url = 'https://www.cineworld.co.uk/syndication/';
+
+const debug = true;
+
+const https = require('https');
 
 module.exports = {
   get(filename) {
+    return new Promise((resolve, reject) => {
+      if (debug) {
+        resolve(filename);
+      } else {
+        const file = fs.createWriteStream(`${loc}${filename}.xml`);
+
+        https.get(`${url}${filename}.xml`, response => {
+          response.pipe(file);
+
+          response.on('end', function() {
+            resolve(filename);
+          });
+        });
+      }
+    });
+  },
+
+  read(filename) {
     return new Promise((resolve, reject) => {
       fs.readFile(`${loc}${filename}.xml`, (err, data) => {
         if (err) {

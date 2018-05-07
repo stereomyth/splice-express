@@ -11,6 +11,7 @@ let convert = data => {
 
 feed
   .get('cinemas')
+  .then(feed.read)
   .then(convert)
   .then(cinemas => feed.save('cinemas', cinemas))
   .catch(err => {
