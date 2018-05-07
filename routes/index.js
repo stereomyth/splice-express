@@ -13,7 +13,7 @@ const router = express.Router();
 
 router.get('/locations', function(req, res, next) {
   feed
-    .query('cinemas')
+    .query('locations')
     .then(data => res.send(data))
     .catch(err => {
       console.log(err);

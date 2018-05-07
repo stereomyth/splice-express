@@ -1,45 +1,68 @@
 var feed = require(__dirname + '/../things/feed');
 
-let doTimes = (times, films) => {
-  let out = {};
-
-  times.map(time => {
-    // return time;
-    let film = time.film;
-    let cinema = time.cinema;
-
-    out[cinema] = out[cinema] || {};
-    out[cinema][film] = out[cinema][film] || { ...films[film], times: [] };
-    out[cinema][film].times.push(time.date);
-  });
-
-  return out;
-};
-
 let convert = data => {
-  let films = data.feed.films.film;
-  let filmSort = {};
+  data = data.feed;
 
-  films.forEach(film => {
-    filmSort[film.id] = film;
+  let raw = {
+    screens: data.performances.screening,
+    attrs: data.attributes.attribute,
+    locations: data.cinemas.cinema,
+    films: data.films.film,
+  };
+
+  let cinemas = raw.locations.map(cinema => {
+    return {
+      id: cinema.id,
+      name: cinema.name.replace('Cineworld ', ''),
+      slug: cinema.url.replace('http://www1.cineworld.co.uk/cinemas/', ''),
+      postcode: cinema.postcode,
+    };
   });
 
-  let times = doTimes(data.feed.performances.screening, filmSort);
+  let filmByID = raw.films.reduce((acc, film) => {
+    acc[film.id] = acc[film.id] || film;
+    return acc;
+  }, {});
 
-  return {
-    attr: data.feed.attributes.attribute.map(attr => {
-      return {
-        title: attr.$t,
-        slug: attr.code,
-      };
-    }),
-    cinemas: data.feed.cinemas.cinema.map(cinema => {
-      cinema.name = cinema.name.replace('Cineworld ', '');
-      return cinema;
-    }),
-    films,
-    times,
-  };
+  let total = raw.screens.reduce((acc, screen) => {
+    let cid = screen.cinema;
+    let film = filmByID[screen.film];
+
+    acc[cid] = acc[cid] || {};
+    acc[cid][film.title] = acc[cid][film.title] || {
+      id: [],
+      title: film.title,
+      runTime: film.runningTime,
+      img: film.posterUrl,
+      screens: {},
+    };
+    let id = acc[cid][film.title].id;
+    if (!id.includes(film.id)) {
+      id.push(film.id);
+    }
+    (acc[cid][film.title].screens[screen.attributes] =
+      acc[cid][film.title].screens[screen.attributes] || []).push(screen.date);
+
+    return acc;
+  }, {});
+
+  let normalTotal = {};
+
+  for (const cid in total) {
+    normalTotal[cid] = Object.keys(total[cid]).map(title => {
+      return total[cid][title];
+    });
+  }
+
+  // return {
+  // attr: data.feed.attributes.attribute.map(attr => {
+  //   return {
+  //     title: attr.$t,
+  //     slug: attr.code,
+  //   };
+  // }),
+
+  return { cinemas, total: normalTotal, filmByID };
 };
 
 feed
@@ -47,10 +70,10 @@ feed
   .then(feed.read)
   .then(convert)
   .then(data => {
-    feed.save('attr', data.attr);
-    feed.save('cine', data.cinemas);
-    feed.save('film', data.films);
-    feed.save('times', data.times);
+    // feed.save('attr', data.attr);
+    feed.save('locations', data.cinemas);
+    // feed.save('film', data.films);
+    feed.save('times', data.total);
   })
   .catch(err => {
     console.log(err);
