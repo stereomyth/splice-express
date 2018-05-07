@@ -29,4 +29,16 @@ module.exports = {
       });
     });
   },
+
+  query(filename) {
+    return new Promise((resolve, reject) => {
+      fs.readFile(`${db}${filename}.json`, (err, data) => {
+        if (err) {
+          reject(err);
+        }
+
+        resolve(data);
+      });
+    });
+  },
 };
