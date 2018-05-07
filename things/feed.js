@@ -58,8 +58,9 @@ module.exports = {
         if (err) {
           reject(err);
         }
-
-        resolve(data);
+        if (data) {
+          resolve(JSON.parse(data));
+        }
       });
     });
   },
