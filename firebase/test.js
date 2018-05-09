@@ -10,33 +10,20 @@ admin.initializeApp({
 var db = admin.firestore();
 
 let insert = data => {
-  // let batch = db.batch();
+  let batch = db.batch();
 
   data.feed.cinemas.cinema.forEach(cinema => {
-    let out = {
-      id: cinema.id,
-      name: cinema.name.replace('Cineworld ', ''),
-      slug: cinema.url.replace('http://www1.cineworld.co.uk/cinemas/', ''),
-      postcode: cinema.postcode,
-    };
+    let slug = cinema.url.replace('http://www1.cineworld.co.uk/cinemas/', '');
 
-    db
-      .collection('locations')
-      .doc(out.slug)
-      .set(out);
+    batch.set(db.collection('locations').doc(slug), {
+      id: cinema.id,
+      slug,
+      name: cinema.name.replace('Cineworld ', ''),
+      postcode: cinema.postcode || '',
+    });
   });
 
-  // let cinema = locations[0];
-  // // console.log('cinema: ', cinema);
-
-  // db
-  //   .collection('locations')
-  //   .doc('t1')
-  //   .set(cinema);
-
-  // console.log(locations);
-
-  // return batch.commit();
+  return batch.commit();
 };
 
 feed
