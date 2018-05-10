@@ -1,13 +1,5 @@
 const feed = require(__dirname + '/../things/feed');
-const admin = require('firebase-admin');
-
-var serviceAccount = require(__dirname + '/key.json');
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-
-var db = admin.firestore();
+const db = require(__dirname + '/db.js');
 
 let insert = data => {
   let batch = db.batch();
