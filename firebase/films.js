@@ -10,35 +10,70 @@ let insert = data => {
   let filmByID = {};
   let cinemaByID = {};
 
-  cinemas.forEach(cinema => {
-    let slug = cinema.url.replace('http://www1.cineworld.co.uk/cinemas/', '');
+  // build and save locations
+  cinemas.forEach(data => {
+    const cinema = {
+      slug: data.url.replace('http://www1.cineworld.co.uk/cinemas/', ''),
+      name: data.name.replace('Cineworld ', ''),
+      postcode: data.postcode || '',
+    };
 
-    cinemaByID[cinema.id] = slug;
+    cinemaByID[data.id] = cinema.slug;
+    // batch.set(db.collection('locations').doc(cinema.slug), cinema);
   });
 
-  films.forEach(film => {
-    let slug = film.url.replace('http://www1.cineworld.co.uk/films/', '');
+  // build and save films
+  films.forEach(data => {
+    const film = {
+      slug: data.url.replace('http://www1.cineworld.co.uk/films/', ''),
+      title: data.title,
+      runTime: data.runningTime,
+      img: data.posterUrl,
+    };
 
-    filmByID[film.id] = slug;
-
-    // batch.set(db.collection('films').doc(slug), {
-    //   slug,
-    //   title: film.title,
-    //   runTime: film.runningTime,
-    //   img: film.posterUrl,
-    // });
-  });
-  screens.forEach(screen => {
-    console.log({
-      location: cinemaByID[screen.cinema],
-      date: screen.date,
-      film: filmByID[screen.film],
-    });
-    // let slug = cinema.url.replace('http://www1.cineworld.co.uk/cinemas/', '');
-
-    // cinemaByID[cinema.id] = slug;
+    filmByID[data.id] = film.slug;
+    // batch.set(db.collection('films').doc(film.slug), film);
   });
 
+  let types = [];
+
+  screens.forEach(data => {
+    // const attr = data.attributes.split(',');
+    const attr = data.attributes;
+
+    const screen = {
+      location: cinemaByID[data.cinema],
+      date: data.date,
+      film: filmByID[data.film],
+      attr,
+    };
+    // if (attr.includes('IMAX')) {
+    //   console.log(attr);
+    // }
+
+    if (!types.includes(attr)) {
+      types.push(attr);
+      // console.log(screen);
+    }
+
+    // 2d
+    // imax
+    // 3d
+    // imax 3d
+    // 4dx
+    // 3d 4dx
+
+    // batch.set(
+    //   db
+    //     .collection('locations')
+    //     .doc(screen.location)
+    //     .collection('screens')
+    //     .doc(),
+    //   screen
+    // );
+  });
+
+  console.log('types: ', types);
   // console.log('filmByID: ', filmByID);
   // console.log('cinemaByID: ', cinemaByID);
 
