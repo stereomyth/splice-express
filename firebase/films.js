@@ -1,17 +1,20 @@
 const feed = require(__dirname + '/../things/feed');
-// const db = require(__dirname + '/db.js');
+const db = require(__dirname + '/db.js');
 
 let insert = data => {
-  // let batch = db.batch();
-  const cinemas = data.feed.cinemas.cinema;
-  const films = data.feed.films.film;
-  const screens = data.feed.performances.screening;
+  let batch = db.batch();
+
+  const raw = {
+    cinemas: data.feed.cinemas.cinema,
+    films: data.feed.films.film,
+    screens: data.feed.performances.screening,
+  };
 
   let filmByID = {};
   let cinemaByID = {};
 
   // build and save locations
-  cinemas.forEach(data => {
+  raw.cinemas.forEach(data => {
     const cinema = {
       slug: data.url.replace('http://www1.cineworld.co.uk/cinemas/', ''),
       name: data.name.replace('Cineworld ', ''),
@@ -23,7 +26,7 @@ let insert = data => {
   });
 
   // build and save films
-  films.forEach(data => {
+  raw.films.forEach(data => {
     const film = {
       slug: data.url.replace('http://www1.cineworld.co.uk/films/', ''),
       title: data.title,
@@ -35,49 +38,48 @@ let insert = data => {
     // batch.set(db.collection('films').doc(film.slug), film);
   });
 
-  let types = [];
+  const out = raw.screens.reduce((acc, data) => {
+    const cid = cinemaByID[data.cinema];
+    const film = filmByID[data.film];
 
-  screens.forEach(data => {
-    // const attr = data.attributes.split(',');
     const attr = data.attributes;
+    let type = attr.includes('3D') ? '3D' : '2D';
 
-    const screen = {
-      location: cinemaByID[data.cinema],
-      date: data.date,
-      film: filmByID[data.film],
-      attr,
-    };
-    // if (attr.includes('IMAX')) {
-    //   console.log(attr);
-    // }
-
-    if (!types.includes(attr)) {
-      types.push(attr);
-      // console.log(screen);
+    if (attr.includes('IMAX')) {
+      type += '-IMAX';
+    } else if (attr.includes('4DX')) {
+      type += '-4DX';
     }
 
-    // 2d
-    // imax
-    // 3d
-    // imax 3d
-    // 4dx
-    // 3d 4dx
+    acc[cid] = acc[cid] || {};
+    acc[cid][film] = acc[cid][film] || {};
+    acc[cid][film][type] = acc[cid][film][type] || [];
 
-    // batch.set(
-    //   db
-    //     .collection('locations')
-    //     .doc(screen.location)
-    //     .collection('screens')
-    //     .doc(),
-    //   screen
-    // );
+    acc[cid][film][type].push({
+      date: data.date,
+      attr: attr.split(','),
+    });
+
+    return acc;
+  }, {});
+
+  Object.keys(out).forEach(slug => {
+    const cinema = out[slug];
+    batch.set(
+      db
+        .collection('locations')
+        .doc(slug)
+        .collection('films')
+        .doc(),
+      cinema
+    );
   });
 
-  console.log('types: ', types);
-  // console.log('filmByID: ', filmByID);
-  // console.log('cinemaByID: ', cinemaByID);
+  // console.log(out['birmingham-broad-street']);
+  // console.log(Object.keys(out).length);
+  // console.log(Object.keys(out['birmingham-broad-street']).length);
 
-  // return batch.commit();
+  return batch.commit();
 };
 
 feed
