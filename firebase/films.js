@@ -75,10 +75,6 @@ let insert = data => {
     );
   });
 
-  // console.log(out['birmingham-broad-street']);
-  // console.log(Object.keys(out).length);
-  // console.log(Object.keys(out['birmingham-broad-street']).length);
-
   return batch.commit();
 };
 
